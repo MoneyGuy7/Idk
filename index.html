@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Security Control Spinner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+/* -----------------------------------------------------------
+   GLOBAL STYLING + BACKGROUND GRID
+----------------------------------------------------------- */
+
+body {
+    margin: 0;
+    background: #050505;
+    font-family: 'Arial', sans-serif;
+    color: white;
+    overflow-x: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#bgGrid {
+    position: fixed;
+    width: 200%;
+    height: 200%;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0,255,140,0.05) 0px,
+        rgba(0,255,140,0.05) 2px,
+        transparent 2px,
+        transparent 20px
+    ),
+    repeating-linear-gradient(
+        90deg,
+        rgba(0,255,140,0.05) 0px,
+        rgba(0,255,140,0.05) 2px,
+        transparent 2px,
+        transparent 20px
+    );
+    animation: moveGrid 20s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes moveGrid {
+    from { transform: translate(0,0); }
+    to { transform: translate(-200px, -200px); }
+}
+
+/* -----------------------------------------------------------
+   TITLE
+----------------------------------------------------------- */
+h1 {
+    margin-top: 25px;
+    font-size: 32px;
+    color: #00ffbf;
+    letter-spacing: 3px;
+    text-shadow: 0 0 10px #00ffbf;
+    z-index: 2;
+}
+
+/* -----------------------------------------------------------
+   SPINNER AND DISPLAY
+----------------------------------------------------------- */
+
+#spinnerContainer {
+    margin-top: 40px;
+    width: 300px;
+    height: 300px;
+    position: relative;
+    z-index: 2;
+}
+
+#spinner {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 6px solid #00ffbf;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 50px;
+    transition: 0.3s;
+    box-shadow: 0 0 20px #00ffbf;
+}
+
+/* Progress ring */
+#ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 10px solid transparent;
+    border-top-color: #00ffbf;
+    transform: rotate(0deg);
+    transition: transform 0.2s linear;
+}
+
+/* -----------------------------------------------------------
+   TERMINAL LOG
+----------------------------------------------------------- */
+
+#terminalBox {
+    width: 90%;
+    max-width: 500px;
+    height: 250px;
+    margin-top: 40px;
+    padding: 15px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(0,255,190,0.2);
+    border-radius: 10px;
+    overflow-y: auto;
+    z-index: 2;
+}
+
+.log {
+    font-size: 15px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 5px;
+}
+
+/* Scrollbar */
+#terminalBox::-webkit-scrollbar {
+    width: 5px;
+}
+#terminalBox::-webkit-scrollbar-thumb {
+    background: #00ffbf;
+    border-radius: 10px;
+}
+
+</style>
+</head>
+<body>
+
+<div id="bgGrid"></div>
+
+<h1>SECURITY CONTROL SYSTEM</h1>
+
+<div id="spinnerContainer">
+    <div id="ring"></div>
+    <div id="spinner">0%</div>
+</div>
+
+<div id="terminalBox"></div>
+
+<script>
+/* -----------------------------------------------------------
+   MAIN LOGIC
+----------------------------------------------------------- */
+
+let percent = 0;
+let lastX = null;
+
+const spinner = document.getElementById("spinner");
+const ring = document.getElementById("ring");
+const terminal = document.getElementById("terminalBox");
+
+/* -----------------------------------------------------------
+   MASSIVE MILESTONE LIST (40+)
+----------------------------------------------------------- */
+
+const milestones = {
+    1: "Initializing Basic Security",
+    3: "Firewall Online",
+    5: "Security Personnel Added",
+    8: "Thermal Sensors Activated",
+    10: "CCTV Network Live",
+    12: "Backup Power Grid Stable",
+    15: "Gate Reinforced",
+    18: "Motion Detection Armed",
+    20: "Laser Grid Active",
+    25: "Biometric Locks Engaged",
+    30: "Electric Fencing Online",
+    35: "Guard Dogs Released",
+    40: "Encrypted Doors Secured",
+    45: "AI Threat Analysis Activated",
+    50: "Patrol Drones Deployed",
+    55: "Security Bots Activated",
+    60: "Retina Scanners Online",
+    65: "Infrared Towers Ready",
+    70: "Maximum Security Protocols",
+    75: "Satellite Monitoring Enabled",
+    80: "Region Locked Down",
+    85: "Defense Grid Fully Operational",
+    90: "Critical Infrastructure Sealed",
+    95: "Absolute Security Engaged",
+    100: "MEGA-LOCKDOWN DEPLOYED",
+
+    // Going down
+    "-3": "Firewall Weakening",
+    "-5": "Security Personnel Removed",
+    "-10": "CCTV Offline",
+    "-15": "Gate Losing Reinforcement",
+    "-20": "Laser Grid Disabled",
+    "-30": "Electric Fencing Offline",
+    "-40": "Encrypted Doors Opened",
+    "-50": "Drones Recalled",
+    "-60": "Security Bots Offline",
+    "-70": "AI System Disabled",
+    "-80": "Region Security Failing",
+    "-90": "Defense Grid Collapsing",
+    "-100": "COMPLETE SECURITY FAILURE"
+};
+
+/* -----------------------------------------------------------
+   LOGGING
+----------------------------------------------------------- */
+
+function addLog(text) {
+    const div = document.createElement("div");
+    div.className = "log";
+    div.innerHTML = text;
+    terminal.prepend(div);
+}
+
+/* -----------------------------------------------------------
+   VISUAL UPDATES
+----------------------------------------------------------- */
+
+function updateVisuals() {
+    spinner.textContent = percent + "%";
+    ring.style.transform = `rotate(${percent * 3.6}deg)`;
+
+    let color;
+    if (percent < 30) color = "#ff4747";
+    else if (percent < 60) color = "#ffa800";
+    else color = "#00ffbf";
+
+    spinner.style.borderColor = color;
+    spinner.style.boxShadow = `0 0 20px ${color}`;
+    ring.style.borderTopColor = color;
+}
+
+/* -----------------------------------------------------------
+   MILESTONE CHECKING
+----------------------------------------------------------- */
+
+function checkMilestones(prev, curr) {
+    const step = curr > prev ? 1 : -1;
+
+    for (let i = prev; i !== curr; i += step) {
+        const key = step === 1 ? i : "-" + Math.abs(i);
+
+        if (milestones[key]) {
+            addLog(milestones[key]);
+        }
+    }
+}
+
+/* -----------------------------------------------------------
+   TOUCH CONTROLS (3 FINGERS TO ROTATE)
+----------------------------------------------------------- */
+
+spinner.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 3) {
+        lastX = e.touches[0].clientX;
+    }
+});
+
+spinner.addEventListener("touchmove", (e) => {
+    if (e.touches.length !== 3) return;
+
+    const x = e.touches[0].clientX;
+    const dx = x - lastX;
+
+    if (Math.abs(dx) > 8) {
+        let old = percent;
+
+        if (dx > 0) percent = Math.min(100, percent + 1);
+        else percent = Math.max(0, percent - 1);
+
+        checkMilestones(old, percent);
+        updateVisuals();
+
+        lastX = x;
+    }
+});
+
+updateVisuals();
+
+</script>
+
+</body>
+</html>
