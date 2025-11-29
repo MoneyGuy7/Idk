@@ -1,286 +1,842 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Security Control Spinner</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Security Control — MEGA Terminal</title>
 <style>
-/* -----------------------------------------------------------
-   GLOBAL STYLING + BACKGROUND GRID
------------------------------------------------------------ */
+  /* -------------------------
+     THEME + LAYOUT
+  ------------------------- */
+  :root{
+    --bg:#05060a;
+    --card:#07101a;
+    --accent:#00ff9f;
+    --accent2:#7af0ff;
+    --danger:#ff3b3b;
+    --muted:#9fb3c8;
+    --glass: rgba(255,255,255,0.03);
+    --glass-2: rgba(255,255,255,0.015);
+  }
+  html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;color:#dff6ee;background:
+    radial-gradient(800px 400px at 10% 10%, rgba(0,160,140,0.03), transparent),
+    linear-gradient(180deg,#04060a 0%, #020306 100%);}
+  .app {
+    max-width:1200px;
+    margin:18px auto;
+    display:grid;
+    grid-template-columns: 460px 1fr;
+    gap:18px;
+    align-items:start;
+    padding:18px;
+  }
 
-body {
-    margin: 0;
-    background: #050505;
-    font-family: 'Arial', sans-serif;
-    color: white;
-    overflow-x: hidden;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
+  /* -------------------------
+     LEFT: HUD (spinner + hologram)
+  ------------------------- */
+  .panel {
+    background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.008));
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.03);
+    padding:14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+  }
 
-#bgGrid {
-    position: fixed;
-    width: 200%;
-    height: 200%;
-    background: repeating-linear-gradient(
-        0deg,
-        rgba(0,255,140,0.05) 0px,
-        rgba(0,255,140,0.05) 2px,
-        transparent 2px,
-        transparent 20px
-    ),
-    repeating-linear-gradient(
-        90deg,
-        rgba(0,255,140,0.05) 0px,
-        rgba(0,255,140,0.05) 2px,
-        transparent 2px,
-        transparent 20px
-    );
-    animation: moveGrid 20s linear infinite;
-    pointer-events: none;
-}
+  .hud {
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .title {
+    font-weight:700;
+    font-size:16px;
+    color:var(--accent);
+    letter-spacing:1px;
+  }
 
-@keyframes moveGrid {
-    from { transform: translate(0,0); }
-    to { transform: translate(-200px, -200px); }
-}
+  /* Spinner */
+  .spinner-area {
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+  }
+  #spinnerWrap {
+    width:360px;height:360px;border-radius:18px;padding:12px;display:grid;place-items:center;
+    background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
+    border:1px solid rgba(255,255,255,0.02);
+  }
+  #spinner {
+    width:300px;height:300px;border-radius:50%;position:relative;display:grid;place-items:center;
+    touch-action:none; user-select:none;
+    background: radial-gradient(circle at 35% 20%, rgba(255,255,255,0.03), transparent 10%),
+                linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.45));
+    box-shadow: inset 0 -12px 30px rgba(0,0,0,0.6), 0 8px 30px rgba(0,0,0,0.6);
+    border: 6px solid rgba(255,255,255,0.03);
+    overflow:hidden;
+  }
+  #ring {
+    position:absolute;inset:0;border-radius:50%;pointer-events:none;
+    background: conic-gradient(var(--accent) 0deg, rgba(255,255,255,0.05) 0deg);
+    transition: background 160ms linear;
+    display:grid;place-items:center;
+  }
+  .center {
+    width:56%;height:56%;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.005));
+    border:1px solid rgba(255,255,255,0.03);
+  }
+  #percent {
+    font-size:64px;font-weight:800;color:#fff;letter-spacing:-1px;
+  }
+  .label { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:1.5px; margin-top:4px; }
 
-/* -----------------------------------------------------------
-   TITLE
------------------------------------------------------------ */
-h1 {
-    margin-top: 25px;
-    font-size: 32px;
-    color: #00ffbf;
-    letter-spacing: 3px;
-    text-shadow: 0 0 10px #00ffbf;
-    z-index: 2;
-}
+  /* needle */
+  .needle {
+    position:absolute;width:8px;height:160px;left:50%;top:50%;transform-origin:50% 100%;
+    transform: translate(-50%,-50%) rotate(0deg);
+    background: linear-gradient(180deg,var(--accent2),var(--accent));
+    border-radius:10px;filter: drop-shadow(0 12px 24px rgba(0,255,160,0.06));
+    pointer-events:none; opacity:0.95;
+  }
 
-/* -----------------------------------------------------------
-   SPINNER AND DISPLAY
------------------------------------------------------------ */
+  /* holo */
+  .holo {
+    width:100%;height:170px;display:flex;gap:12px;align-items:center;justify-content:space-between;
+  }
+  .holo-cube {
+    width:140px;height:140px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.006));
+    border:1px solid rgba(255,255,255,0.02); display:grid;place-items:center;position:relative;overflow:visible;
+  }
+  .holo-cube .cube {
+    width:80px;height:80px;transform-style:preserve-3d;animation: spin3d 8s linear infinite;
+    position:relative;
+  }
+  .holo-cube .face {
+    position:absolute;width:80px;height:80px;background:linear-gradient(180deg, rgba(0,255,190,0.07), rgba(0,200,160,0.03));
+    border:1px solid rgba(0,255,190,0.15);backface-visibility:hidden;
+    display:grid;place-items:center;color:rgba(255,255,255,0.9);font-weight:700;
+  }
+  .face.front{transform:translateZ(40px)}
+  .face.back{transform:rotateY(180deg) translateZ(40px)}
+  .face.left{transform:rotateY(-90deg) translateZ(40px)}
+  .face.right{transform:rotateY(90deg) translateZ(40px)}
+  .face.top{transform:rotateX(90deg) translateZ(40px)}
+  .face.bottom{transform:rotateX(-90deg) translateZ(40px)}
+  @keyframes spin3d {from{transform:rotateX(0) rotateY(0)}to{transform:rotateX(360deg) rotateY(360deg)}}
 
-#spinnerContainer {
-    margin-top: 40px;
-    width: 300px;
-    height: 300px;
-    position: relative;
-    z-index: 2;
-}
+  /* -------------------------
+     RIGHT: Controls & terminal
+  ------------------------- */
+  .rightcol { display:flex; flex-direction:column; gap:12px; }
+  .controls { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+  .btn { padding:8px 12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);color:var(--muted);cursor:pointer;}
+  .btn.primary { background: linear-gradient(180deg, rgba(0,255,160,0.06), rgba(0,255,160,0.02)); color:#05281b; font-weight:700; }
+  .row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
 
-#spinner {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    border: 6px solid #00ffbf;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 50px;
-    transition: 0.3s;
-    box-shadow: 0 0 20px #00ffbf;
-}
+  /* terminal */
+  #terminal {
+    height:340px; overflow:auto; padding:12px; border-radius:10px; background:linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.45));
+    border:1px solid rgba(255,255,255,0.02); font-family:ui-monospace, SFMono-Regular, Menlo, monospace; color:#bdf6e3; font-size:13px;
+  }
+  .log-entry { padding:8px;border-bottom:1px dashed rgba(255,255,255,0.02); }
 
-/* Progress ring */
-#ring {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    border: 10px solid transparent;
-    border-top-color: #00ffbf;
-    transform: rotate(0deg);
-    transition: transform 0.2s linear;
-}
+  .status-bar { display:flex; gap:8px; align-items:center; font-size:13px; color:var(--muted); }
 
-/* -----------------------------------------------------------
-   TERMINAL LOG
------------------------------------------------------------ */
+  .siren { width:12px; height:12px; border-radius:50%; background:var(--danger); box-shadow:0 0 8px var(--danger); animation: sirenFlash 1s infinite; margin-left:auto; }
+  @keyframes sirenFlash { 0%{opacity:1}50%{opacity:0.25}100%{opacity:1} }
 
-#terminalBox {
-    width: 90%;
-    max-width: 500px;
-    height: 250px;
-    margin-top: 40px;
-    padding: 15px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(0,255,190,0.2);
-    border-radius: 10px;
-    overflow-y: auto;
-    z-index: 2;
-}
+  /* mini map */
+  .mini { width:220px;height:140px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.006)); border:1px solid rgba(255,255,255,0.02); padding:8px; }
+  .radar { width:100%; height:140px; border-radius:8px; background:radial-gradient(circle at 50% 50%, rgba(0,255,160,0.02), transparent 35%), linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.2)); overflow:hidden; position:relative; }
 
-.log {
-    font-size: 15px;
-    margin-bottom: 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    padding-bottom: 5px;
-}
+  /* warnings */
+  .warning {
+    padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,90,90,0.07), rgba(255,60,60,0.03));border:1px solid rgba(255,90,90,0.08);
+    color:#fff;font-weight:700;
+  }
 
-/* Scrollbar */
-#terminalBox::-webkit-scrollbar {
-    width: 5px;
-}
-#terminalBox::-webkit-scrollbar-thumb {
-    background: #00ffbf;
-    border-radius: 10px;
-}
+  /* login modal */
+  .modal {
+    position:fixed;inset:0;display:grid;place-items:center;background:linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)); z-index:9999;
+  }
+  .login {
+    width:420px;padding:18px;border-radius:12px;background:linear-gradient(180deg,#021018,#04131a);border:1px solid rgba(255,255,255,0.03);
+  }
+  .field { display:flex;flex-direction:column;margin-bottom:10px; }
+  input[type="text"], input[type="password"] { padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:#dff6ee; }
+  .smallmuted { color:var(--muted); font-size:13px; margin-top:6px; }
 
+  /* responsive */
+  @media (max-width:980px){
+    .app { grid-template-columns: 1fr; padding:12px; }
+    #spinnerWrap { width:100%; height:auto; }
+  }
 </style>
 </head>
 <body>
 
-<div id="bgGrid"></div>
-
-<h1>SECURITY CONTROL SYSTEM</h1>
-
-<div id="spinnerContainer">
-    <div id="ring"></div>
-    <div id="spinner">0%</div>
+<!-- LOGIN -->
+<div id="loginModal" class="modal" role="dialog" aria-modal="true" aria-label="Login">
+  <div class="login panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-weight:800;color:var(--accent);font-size:18px">SECURITY TERMINAL — LOGIN</div>
+      <div style="font-size:12px;color:var(--muted)">Local Demo</div>
+    </div>
+    <div class="smallmuted" style="margin-top:8px">Enter any username & pass — client-side demo only (no server).</div>
+    <div style="height:12px"></div>
+    <div class="field">
+      <label class="smallmuted">Username</label>
+      <input id="userInput" type="text" placeholder="admin" />
+    </div>
+    <div class="field">
+      <label class="smallmuted">Password</label>
+      <input id="passInput" type="password" placeholder="password" />
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button id="loginBtn" class="btn primary">Sign In</button>
+      <button id="demoBtn" class="btn">Demo</button>
+    </div>
+    <div class="smallmuted" style="margin-top:10px">This login only stores your name in localStorage for labeling logs & won't be shared.</div>
+  </div>
 </div>
 
-<div id="terminalBox"></div>
+<div class="app" role="application" aria-label="Security Control Application">
+
+  <!-- LEFT column -->
+  <div class="panel hud">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="title">Live Security HUD</div>
+      <div class="status-bar">
+        <div id="statusText" style="font-weight:700">ONLINE</div>
+        <div id="siren" class="siren" title="Siren status"></div>
+      </div>
+    </div>
+
+    <div id="spinnerWrap" class="panel">
+      <div id="spinner" tabindex="0" aria-label="Security spinner: use three-finger rotate, drag, wheel, or +/- keys.">
+        <div id="ring" style="--pct:25"></div>
+        <div class="needle" id="needle" aria-hidden="true"></div>
+        <div class="center">
+          <div id="percent">25%</div>
+          <div class="label">Security Percent</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="holo panel" style="align-items:stretch;">
+      <div class="holo-cube">
+        <div style="position:absolute;top:8px;left:10px;color:var(--muted);font-size:12px">Hologram</div>
+        <div class="cube" aria-hidden="true">
+          <div class="face front">SEC</div>
+          <div class="face back">SYS</div>
+          <div class="face left">AI</div>
+          <div class="face right">DRN</div>
+          <div class="face top">NET</div>
+          <div class="face bottom">ENG</div>
+        </div>
+      </div>
+
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+        <div style="font-weight:700;color:var(--accent)">3D Hologram</div>
+        <div style="font-size:13px;color:var(--muted)">Animated holographic cube representing system state. When percent is high it glows.</div>
+        <div style="display:flex;gap:8px;margin-top:auto;">
+          <button id="holoPulse" class="btn small">Pulse Holo</button>
+          <button id="holoRotateOff" class="btn small">Toggle Spin</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT column -->
+  <div class="rightcol">
+
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:800;color:var(--accent)">Control Panel</div>
+          <div class="smallmuted">Use gestures or controls to change security percent</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button id="saveBtn" class="btn">Save</button>
+          <button id="resetBtn" class="btn">Reset</button>
+        </div>
+      </div>
+
+      <div class="controls" style="margin-top:12px;">
+        <button id="dec5" class="btn">-5</button>
+        <button id="inc5" class="btn">+5</button>
+        <button id="snapBtn" class="btn">Snap to Gate</button>
+        <button id="randBtn" class="btn">Random Event</button>
+        <button id="undoBtn" class="btn">Undo</button>
+        <button id="soundToggle" class="btn">Sound: On</button>
+      </div>
+
+      <div style="height:10px"></div>
+
+      <div class="row">
+        <div class="smallmuted">Sensitivity</div>
+        <input id="sensitivity" type="range" min="0.2" max="3" step="0.1" value="1" />
+      </div>
+
+      <div style="height:10px"></div>
+
+      <div class="row">
+        <div class="smallmuted">Inertia</div>
+        <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="inertiaToggle" /> Enable</label>
+        <div style="margin-left:auto;" class="smallmuted">Auto-snap <input id="autoSnap" type="checkbox" checked style="margin-left:8px" /></div>
+      </div>
+    </div>
+
+    <div class="panel" id="terminal">
+      <!-- Terminal log populated by JS -->
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <div class="mini panel">
+        <div style="font-weight:700;color:var(--accent)">Mini-map</div>
+        <svg viewBox="0 0 220 120" style="width:100%;height:110px;border-radius:6px;margin-top:6px">
+          <rect x="0" y="0" width="220" height="120" fill="rgba(0,0,0,0.25)"></rect>
+          <!-- Buildings -->
+          <rect x="18" y="18" width="40" height="30" fill="rgba(0,255,160,0.06)"></rect>
+          <rect x="70" y="50" width="60" height="44" fill="rgba(0,255,160,0.06)"></rect>
+          <rect x="140" y="20" width="70" height="28" fill="rgba(0,255,160,0.06)"></rect>
+          <!-- Player -->
+          <circle id="playerDot" cx="30" cy="80" r="5" fill="var(--accent)"></circle>
+          <!-- Threats -->
+          <circle cx="160" cy="80" r="6" fill="rgba(255,90,90,0.9)"></circle>
+        </svg>
+      </div>
+
+      <div class="mini panel" style="flex:1">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-weight:700;color:var(--accent)">Radar</div>
+          <div style="font-size:12px;color:var(--muted)">Live</div>
+        </div>
+        <canvas id="radarCanvas" width="300" height="120" style="width:100%;height:100%;margin-top:6px;border-radius:6px"></canvas>
+      </div>
+    </div>
+
+    <div class="panel" id="controlsLower">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:700;color:var(--accent)">Quick Actions</div>
+        <div style="font-size:12px;color:var(--muted)">user: <span id="userLabel">guest</span></div>
+      </div>
+      <div style="height:8px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="downloadLog" class="btn">Download Log</button>
+        <button id="clearLog" class="btn">Clear Log</button>
+        <button id="panicBtn" class="btn" style="background:linear-gradient(180deg, rgba(255,60,60,0.08), rgba(255,30,30,0.03)); color:white">Panic</button>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <script>
-/* -----------------------------------------------------------
-   MAIN LOGIC
------------------------------------------------------------ */
+/* ============================
+   Mega Security Terminal JS
+   ============================ */
 
-let percent = 0;
-let lastX = null;
-
-const spinner = document.getElementById("spinner");
-const ring = document.getElementById("ring");
-const terminal = document.getElementById("terminalBox");
-
-/* -----------------------------------------------------------
-   MASSIVE MILESTONE LIST (40+)
------------------------------------------------------------ */
-
-const milestones = {
-    1: "Initializing Basic Security",
-    3: "Firewall Online",
-    5: "Security Personnel Added",
-    8: "Thermal Sensors Activated",
-    10: "CCTV Network Live",
-    12: "Backup Power Grid Stable",
-    15: "Gate Reinforced",
-    18: "Motion Detection Armed",
-    20: "Laser Grid Active",
-    25: "Biometric Locks Engaged",
-    30: "Electric Fencing Online",
-    35: "Guard Dogs Released",
-    40: "Encrypted Doors Secured",
-    45: "AI Threat Analysis Activated",
-    50: "Patrol Drones Deployed",
-    55: "Security Bots Activated",
-    60: "Retina Scanners Online",
-    65: "Infrared Towers Ready",
-    70: "Maximum Security Protocols",
-    75: "Satellite Monitoring Enabled",
-    80: "Region Locked Down",
-    85: "Defense Grid Fully Operational",
-    90: "Critical Infrastructure Sealed",
-    95: "Absolute Security Engaged",
-    100: "MEGA-LOCKDOWN DEPLOYED",
-
-    // Going down
-    "-3": "Firewall Weakening",
-    "-5": "Security Personnel Removed",
-    "-10": "CCTV Offline",
-    "-15": "Gate Losing Reinforcement",
-    "-20": "Laser Grid Disabled",
-    "-30": "Electric Fencing Offline",
-    "-40": "Encrypted Doors Opened",
-    "-50": "Drones Recalled",
-    "-60": "Security Bots Offline",
-    "-70": "AI System Disabled",
-    "-80": "Region Security Failing",
-    "-90": "Defense Grid Collapsing",
-    "-100": "COMPLETE SECURITY FAILURE"
+/* ---------- state & persistence ---------- */
+const STORAGE_KEY = 'megaSecurityState.v1';
+let state = {
+  pct: 25,
+  logs: [],
+  history: [],
+  user: null,
+  siren: false,
+  soundOn: true,
+  spinEnabled: true
 };
+const defaults = JSON.parse(JSON.stringify(state));
 
-/* -----------------------------------------------------------
-   LOGGING
------------------------------------------------------------ */
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function loadState(){ try { const s = JSON.parse(localStorage.getItem(STORAGE_KEY)); if(s) state = Object.assign(state, s); } catch(e){} }
+loadState();
 
-function addLog(text) {
-    const div = document.createElement("div");
-    div.className = "log";
-    div.innerHTML = text;
-    terminal.prepend(div);
+/* ---------- DOM refs ---------- */
+const loginModal = document.getElementById('loginModal');
+const loginBtn = document.getElementById('loginBtn');
+const demoBtn = document.getElementById('demoBtn');
+const userInput = document.getElementById('userInput');
+const passInput = document.getElementById('passInput');
+
+const percentEl = document.getElementById('percent');
+const ring = document.getElementById('ring');
+const spinner = document.getElementById('spinner');
+const needle = document.getElementById('needle');
+const terminal = document.getElementById('terminal');
+const sirenEl = document.getElementById('siren');
+const userLabel = document.getElementById('userLabel');
+const soundToggle = document.getElementById('soundToggle');
+const saveBtn = document.getElementById('saveBtn');
+
+/* ---------- big milestone list (extendable) ---------- */
+const milestones = [
+  {pct:3, name:"Firewall Online"},
+  {pct:5, name:"Security Personnel Added"},
+  {pct:8, name:"Thermal Sensors Activated"},
+  {pct:10, name:"CCTV Network Live"},
+  {pct:12, name:"Backup Power Stable"},
+  {pct:15, name:"Gate Reinforced"},
+  {pct:18, name:"Motion Detection Armed"},
+  {pct:20, name:"Laser Grid Active"},
+  {pct:25, name:"Biometric Locks Engaged"},
+  {pct:30, name:"Electric Fencing Online"},
+  {pct:35, name:"Guard Dogs Released"},
+  {pct:40, name:"Encrypted Doors Secured"},
+  {pct:45, name:"AI Threat Analysis Activated"},
+  {pct:50, name:"Patrol Drones Deployed"},
+  {pct:55, name:"Security Bots Activated"},
+  {pct:60, name:"Retina Scanners Online"},
+  {pct:65, name:"Infrared Towers Ready"},
+  {pct:70, name:"Maximum Security Protocols"},
+  {pct:75, name:"Satellite Monitoring Enabled"},
+  {pct:80, name:"Region Locked Down"},
+  {pct:85, name:"Defense Grid Operational"},
+  {pct:90, name:"Critical Infrastructure Sealed"},
+  {pct:95, name:"Absolute Security Engaged"},
+  {pct:100, name:"MEGA-LOCKDOWN DEPLOYED"}
+];
+
+/* ---------- helpers: logging, timestamp ---------- */
+function ts(){ return new Date().toLocaleString(); }
+function pushLog(text, meta = {}) {
+  const entry = {t: Date.now(), ts: ts(), text, meta};
+  state.logs.unshift(entry);
+  state.history.push(state.pct);
+  renderLogs();
+  saveState();
+}
+function renderLogs() {
+  terminal.innerHTML = '';
+  for (let i=0;i<state.logs.length;i++){
+    const e = state.logs[i];
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    div.innerHTML = `<div style="font-size:12px;color:var(--muted)">${e.ts}</div><div style="margin-top:6px">${e.text}</div>`;
+    terminal.appendChild(div);
+  }
 }
 
-/* -----------------------------------------------------------
-   VISUAL UPDATES
------------------------------------------------------------ */
-
-function updateVisuals() {
-    spinner.textContent = percent + "%";
-    ring.style.transform = `rotate(${percent * 3.6}deg)`;
-
-    let color;
-    if (percent < 30) color = "#ff4747";
-    else if (percent < 60) color = "#ffa800";
-    else color = "#00ffbf";
-
-    spinner.style.borderColor = color;
-    spinner.style.boxShadow = `0 0 20px ${color}`;
-    ring.style.borderTopColor = color;
+/* ---------- visuals ---------- */
+function updateUI(){
+  percentEl.textContent = state.pct + '%';
+  const pct = Math.max(0, Math.min(100, state.pct));
+  // ring conic gradient
+  ring.style.background = `conic-gradient(var(--accent) ${pct}%, rgba(255,255,255,0.04) ${pct}%)`;
+  // needle sweep
+  const angle = -135 + (270 * (pct/100));
+  needle.style.transform = `translate(-50%,-50%) rotate(${angle}deg)`;
+  // colors
+  let color = '#ff4747';
+  if (pct >= 60) color = '#00ff9f';
+  else if (pct >= 30) color = '#ffae00';
+  spinner.style.borderColor = color;
+  spinner.style.boxShadow = `0 10px 40px ${hexToRgba(color,0.12)}`;
+  // siren show if certain thresholds
+  if (pct >= 90) {
+    state.siren = true;
+    sirenEl.style.display = 'block';
+  } else {
+    state.siren = false;
+    sirenEl.style.display = 'block'; // keep visible but change color
+  }
+  // holo glow when high
+  const cube = document.querySelector('.holo-cube .cube');
+  if (cube) cube.style.filter = pct >= 75 ? 'drop-shadow(0 20px 40px rgba(0,255,160,0.12))' : '';
+  userLabel.textContent = state.user || 'guest';
+}
+function hexToRgba(hex, a=1){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16);
+  const g = parseInt(h.substring(2,4),16);
+  const b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
 }
 
-/* -----------------------------------------------------------
-   MILESTONE CHECKING
------------------------------------------------------------ */
-
-function checkMilestones(prev, curr) {
-    const step = curr > prev ? 1 : -1;
-
-    for (let i = prev; i !== curr; i += step) {
-        const key = step === 1 ? i : "-" + Math.abs(i);
-
-        if (milestones[key]) {
-            addLog(milestones[key]);
-        }
+/* ---------- milestone crossing ---------- */
+function checkMilestones(oldPct, newPct){
+  const up = newPct > oldPct;
+  const min = Math.min(oldPct, newPct);
+  const max = Math.max(oldPct, newPct);
+  milestones.forEach(m=>{
+    if (m.pct > min && m.pct <= max){
+      const verb = up ? 'Gate added' : 'Gate removed';
+      pushLog(`${verb}: ${m.name} (${m.pct}%)`);
+      if (state.soundOn) playBeep(up ? 880 : 420, 0.06);
     }
+  });
 }
 
-/* -----------------------------------------------------------
-   TOUCH CONTROLS (3 FINGERS TO ROTATE)
------------------------------------------------------------ */
+/* ---------- set percent with history ---------- */
+function setPct(newPct, opts={source:'ui'}){
+  newPct = Math.round(Math.max(0, Math.min(100, newPct)));
+  if (newPct === state.pct) return;
+  const old = state.pct;
+  state.history.push(old);
+  state.pct = newPct;
+  updateUI();
+  checkMilestones(old, newPct);
+  pushLog(`Security percent set to ${newPct}% (via ${opts.source || 'unknown'})`);
+  saveState();
+}
 
-spinner.addEventListener("touchstart", (e) => {
-    if (e.touches.length === 3) {
-        lastX = e.touches[0].clientX;
-    }
+/* ---------- undo ---------- */
+function undo(){
+  if (state.history.length){
+    const prev = state.history.pop();
+    const old = state.pct;
+    state.pct = prev;
+    updateUI();
+    pushLog(`Undo: reverted ${old}% → ${prev}%`);
+    saveState();
+  } else {
+    pushLog('Undo stack empty');
+  }
+}
+
+/* ---------- random event ---------- */
+function randomEvent(){
+  const delta = Math.round((Math.random()*20)-10);
+  const old = state.pct; const next = Math.max(0, Math.min(100, old + delta));
+  setPct(next, {source:'random_event'});
+  pushLog(`Random event: ${delta>=0?'+':''}${delta} → ${next}%`);
+}
+
+/* ---------- snapshot (download log as JSON) ---------- */
+function downloadLog(){
+  const data = {state, downloadedAt: new Date().toISOString()};
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `security-log-${Date.now()}.json`; document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  pushLog('Log downloaded');
+}
+
+/* ---------- clear log ---------- */
+function clearLog(){
+  if (!confirm('Clear logs?')) return;
+  state.logs = [];
+  saveState();
+  renderLogs();
+  pushLog('Logs cleared');
+}
+
+/* ---------- panic (siren+lockdown) ---------- */
+function panic(){
+  setPct(100, {source:'panic_button'});
+  pushLog('Panic triggered: Full lockdown', {panic:true});
+  // siren sound
+  playBeep(1200, 0.12); setTimeout(()=>playBeep(900,0.1), 150);
+}
+
+/* ---------- simple login (client-only) ---------- */
+loginBtn.addEventListener('click', ()=>{
+  const user = userInput.value.trim() || 'admin';
+  const pass = passInput.value;
+  // demo: accept any pass
+  state.user = user;
+  loginModal.style.display = 'none';
+  pushLog(`User '${user}' signed in (local demo)`);
+  saveState(); updateUI(); renderLogs();
+});
+demoBtn.addEventListener('click', ()=>{
+  state.user = 'demo';
+  loginModal.style.display = 'none';
+  pushLog('Demo user started');
+  saveState(); updateUI(); renderLogs();
 });
 
-spinner.addEventListener("touchmove", (e) => {
-    if (e.touches.length !== 3) return;
+/* ---------- controls ---------- */
+document.getElementById('inc5').addEventListener('click', ()=> setPct(state.pct+5, {source:'btn+5'}));
+document.getElementById('dec5').addEventListener('click', ()=> setPct(state.pct-5, {source:'btn-5'}));
+document.getElementById('snapBtn').addEventListener('click', snapToNearest);
+document.getElementById('randBtn').addEventListener('click', randomEvent);
+document.getElementById('undoBtn').addEventListener('click', undo);
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  if (confirm('Reset security percent to 25% and clear history?')) {
+    state.pct = 25; state.history = []; updateUI(); pushLog('System reset to 25%'); saveState();
+  }
+});
+document.getElementById('saveBtn').addEventListener('click', ()=>{
+  saveState(); pushLog('State saved');
+});
+document.getElementById('downloadLog').addEventListener('click', downloadLog);
+document.getElementById('clearLog').addEventListener('click', clearLog);
+document.getElementById('panicBtn').addEventListener('click', panic);
 
-    const x = e.touches[0].clientX;
-    const dx = x - lastX;
-
-    if (Math.abs(dx) > 8) {
-        let old = percent;
-
-        if (dx > 0) percent = Math.min(100, percent + 1);
-        else percent = Math.max(0, percent - 1);
-
-        checkMilestones(old, percent);
-        updateVisuals();
-
-        lastX = x;
-    }
+soundToggle.addEventListener('click', ()=>{
+  state.soundOn = !state.soundOn;
+  soundToggle.textContent = 'Sound: ' + (state.soundOn ? 'On' : 'Off');
+  pushLog('Sound toggled ' + (state.soundOn ? 'On' : 'Off'));
+  saveState();
 });
 
-updateVisuals();
+/* ---------- sensitivity & toggles ---------- */
+document.getElementById('sensitivity').addEventListener('input', (e)=> {
+  sensitivity = parseFloat(e.target.value || 1);
+});
+let sensitivity = parseFloat(document.getElementById('sensitivity').value || 1);
+document.getElementById('inertiaToggle').addEventListener('change', (e)=> inertiaEnabled = e.target.checked);
+let inertiaEnabled = false;
+
+/* ---------- snap to nearest milestone ---------- */
+function snapToNearest(){
+  let best = milestones.reduce((acc,m)=>{
+    const d = Math.abs(m.pct - state.pct);
+    if (d < acc.d) return {m,d}; return acc;
+  }, {m:null,d:Infinity}).m;
+  if (best){ setPct(best.pct, {source:'snap'}); pushLog(`Snapped to ${best.name} (${best.pct}%)`); }
+}
+
+/* ---------- three-finger rotation + mouse & wheel & keyboard ---------- */
+let tracking = false; let lastAngle = null; let velocity = 0; let lastMoveTime = 0;
+function getCentroid(touches){ let x=0,y=0; for(let i=0;i<touches.length;i++){x+=touches[i].clientX; y+=touches[i].clientY;} return {x:x/touches.length, y:y/touches.length}; }
+function angleBetween(p, t){ return Math.atan2(t.clientY - p.y, t.clientX - p.x) * 180 / Math.PI; }
+
+spinner.addEventListener('touchstart', (ev)=>{
+  if (ev.touches.length >= 3) {
+    ev.preventDefault();
+    const centroid = getCentroid(ev.touches);
+    lastAngle = angleBetween(centroid, ev.touches[0]);
+    tracking = true; velocity = 0; lastMoveTime = performance.now();
+    pushLog('Three-finger gesture started');
+  }
+}, {passive:false});
+
+spinner.addEventListener('touchmove', (ev)=>{
+  if (!tracking || ev.touches.length < 3) return;
+  ev.preventDefault();
+  const centroid = getCentroid(ev.touches);
+  const a = angleBetween(centroid, ev.touches[0]);
+  let delta = a - lastAngle; if (delta > 180) delta -= 360; if (delta < -180) delta += 360;
+  const degToPct = 0.25 * sensitivity;
+  const pctChange = delta * degToPct;
+  const now = performance.now(); const dt = now - lastMoveTime;
+  velocity = (delta) / (dt || 16);
+  lastMoveTime = now; lastAngle = a;
+  setPct(state.pct + pctChange, {source:'gesture'});
+}, {passive:false});
+
+spinner.addEventListener('touchend', (ev)=>{
+  if (!tracking) return;
+  if (ev.touches.length < 3) {
+    tracking = false; pushLog('Three-finger gesture ended');
+    if (inertiaEnabled && Math.abs(velocity) > 0.01) applyInertia(velocity * 1000);
+    else if (document.getElementById('autoSnap').checked) snapToNearest();
+  }
+});
+
+/* mouse drag */
+let mouseDown = false; let mouseStart = null; let mouseStartPct = null;
+spinner.addEventListener('mousedown', (ev)=>{
+  ev.preventDefault();
+  mouseDown = true;
+  mouseStart = {x:ev.clientX,y:ev.clientY};
+  mouseStartPct = state.pct;
+  spinner.focus();
+});
+window.addEventListener('mousemove', (ev)=>{
+  if (!mouseDown) return;
+  const dx = ev.clientX - mouseStart.x; const dy = ev.clientY - mouseStart.y;
+  const drag = dx - dy; const degToPct = 0.08 * sensitivity; const change = drag * degToPct;
+  setPct(mouseStartPct + change, {source:'mouse'});
+});
+window.addEventListener('mouseup', (ev)=>{
+  if (mouseDown){
+    mouseDown = false;
+    if (document.getElementById('autoSnap').checked) snapToNearest();
+  }
+});
+
+/* wheel */
+spinner.addEventListener('wheel', (ev)=>{
+  ev.preventDefault();
+  const step = ev.deltaY > 0 ? -1 : 1;
+  setPct(state.pct + step * Math.max(1, Math.round(3 * sensitivity)), {source:'wheel'});
+}, {passive:false});
+
+/* keyboard */
+window.addEventListener('keydown', (ev)=>{
+  if (ev.key === '+' || ev.key === '=') setPct(state.pct+1,{source:'keyboard'});
+  if (ev.key === '-') setPct(state.pct-1,{source:'keyboard'});
+  if (ev.key === 'u') undo();
+  if (ev.key === 'r') randomEvent();
+  if (ev.key === ' ') { ev.preventDefault(); snapToNearest(); }
+});
+
+/* inertia */
+function applyInertia(degPerSec){
+  const degToPct = 0.25 * sensitivity;
+  let v = degPerSec * degToPct; const decay = 0.98; let last = performance.now();
+  const step = ()=>{
+    const now = performance.now();
+    const dt = (now - last)/1000; last = now;
+    if (Math.abs(v) < 0.02) { if (document.getElementById('autoSnap').checked) snapToNearest(); return; }
+    setPct(state.pct + v * dt, {source:'inertia'});
+    v *= Math.pow(decay, dt*60);
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/* ---------- sound (WebAudio) ---------- */
+let audioCtx = null;
+function ensureAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+function playBeep(freq=880, vol=0.05, dur=80) {
+  if (!state.soundOn) return;
+  try {
+    ensureAudio();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    g.gain.value = vol;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    setTimeout(()=>{ o.stop(); }, dur);
+  } catch(e){}
+}
+
+/* ---------- hologram controls ---------- */
+document.getElementById('holoPulse').addEventListener('click', ()=>{
+  const cube = document.querySelector('.holo-cube .cube');
+  if (!cube) return;
+  cube.animate([{transform:'scale(1)'},{transform:'scale(1.12)'},{transform:'scale(1)'}], {duration:420, easing:'ease-out'});
+  pushLog('Hologram pulse triggered');
+});
+document.getElementById('holoRotateOff').addEventListener('click', (e)=>{
+  const cube = document.querySelector('.holo-cube .cube');
+  if (!cube) return;
+  state.spinEnabled = !state.spinEnabled;
+  cube.style.animationPlayState = state.spinEnabled ? 'running' : 'paused';
+  pushLog('Hologram spin ' + (state.spinEnabled ? 'resumed' : 'paused'));
+  saveState();
+});
+
+/* ---------- radar canvas ---------- */
+const radarCanvas = document.getElementById('radarCanvas');
+const rc = radarCanvas.getContext('2d');
+let radarAngle = 0;
+function radarTick(){
+  const w = radarCanvas.width = radarCanvas.clientWidth * (window.devicePixelRatio || 1);
+  const h = radarCanvas.height = radarCanvas.clientHeight * (window.devicePixelRatio || 1);
+  rc.clearRect(0,0,w,h);
+  rc.save();
+  rc.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+  const cw = radarCanvas.clientWidth; const ch = radarCanvas.clientHeight;
+  // background
+  rc.fillStyle = 'rgba(0,0,0,0.2)'; rc.fillRect(0,0,cw,ch);
+  // concentric circles
+  rc.translate(cw/2, ch/2);
+  rc.strokeStyle = 'rgba(0,255,160,0.06)';
+  for (let r=30;r<=120;r+=30){ rc.beginPath(); rc.arc(0,0,r,0,Math.PI*2); rc.stroke(); }
+  // sweep
+  radarAngle = (radarAngle + 0.03) % (Math.PI*2);
+  const grad = rc.createLinearGradient(0,0,Math.cos(radarAngle)*120, Math.sin(radarAngle)*120);
+  grad.addColorStop(0, 'rgba(0,255,160,0.28)');
+  grad.addColorStop(1, 'rgba(0,255,160,0.02)');
+  rc.fillStyle = grad;
+  rc.beginPath(); rc.moveTo(0,0); rc.arc(0,0,120, radarAngle-0.25, radarAngle+0.25); rc.closePath(); rc.fill();
+  // blips
+  const blipCount = 6;
+  for (let i=0;i<blipCount;i++){
+    const a = Math.random()*Math.PI*2;
+    const r = 30 + Math.random()*80;
+    const x = Math.cos(a)*r; const y = Math.sin(a)*r;
+    rc.fillStyle = i % 4 === 0 ? 'rgba(255,80,80,0.98)' : 'rgba(0,255,160,0.9)';
+    rc.beginPath(); rc.arc(x,y,3,0,Math.PI*2); rc.fill();
+  }
+  rc.restore();
+  requestAnimationFrame(radarTick);
+}
+radarTick();
+
+/* ---------- mini-map animation (player dot) ---------- */
+let playerX = 30, playerY = 80;
+function movePlayer(){
+  playerX += (Math.random()*6 - 3); playerY += (Math.random()*4 - 2);
+  playerX = Math.max(8, Math.min(210, playerX)); playerY = Math.max(12, Math.min(108, playerY));
+  const dot = document.getElementById('playerDot'); if(dot){ dot.setAttribute('cx', playerX); dot.setAttribute('cy', playerY); }
+  setTimeout(movePlayer, 700 + Math.random()*1500);
+}
+movePlayer();
+
+/* ---------- sound notification on milestone crossing (small beep) handled in checkMilestones ---------- */
+
+/* ---------- load initial UI ---------- */
+function bootUI(){
+  updateUI();
+  renderLogs();
+  // show user if logged in
+  if (state.user) {
+    loginModal.style.display = 'none';
+  } else {
+    loginModal.style.display = 'grid';
+  }
+  // sound button label
+  soundToggle.textContent = 'Sound: ' + (state.soundOn ? 'On' : 'Off');
+  // if logs empty, push initialization log
+  if (!state.logs || state.logs.length === 0) {
+    pushLog('System initialized', {init:true});
+  }
+  // sample: if old state had pct saved, apply
+  updateUI();
+}
+bootUI();
+
+/* ---------- initial spinner from saved state ---------- */
+setTimeout(()=>{ setPct(state.pct, {source:'init'}); }, 200);
+
+/* ---------- UI helpers: small visual feedback ---------- */
+function flashWarning(text){
+  const w = document.createElement('div'); w.className='warning'; w.style.position='fixed'; w.style.top='18px'; w.style.right='18px'; w.style.zIndex=9998;
+  w.textContent = text; document.body.appendChild(w); setTimeout(()=> w.remove(), 3800);
+}
+
+/* ---------- random scheduled events (simulate infra) ---------- */
+function scheduledEvent(){
+  const roll = Math.random();
+  if (roll > 0.85) { randomEvent(); pushLog('Scheduled system scan completed'); }
+  if (roll < 0.02) { // rare catastrophic
+    setPct(Math.max(0, state.pct - 30), {source:'scheduled_failure'});
+    pushLog('Unexpected outage: power fluctuation');
+    flashWarning('Power fluctuation detected');
+    playBeep(200,0.12,200);
+  }
+  setTimeout(scheduledEvent, 12000 + Math.random()*20000);
+}
+scheduledEvent();
+
+/* ---------- UI small helpers ---------- */
+document.getElementById('dec5').addEventListener('dblclick', ()=> { setPct(0, {source:'panic_shortcut'}); pushLog('Forced zero via dblclick'); });
+document.getElementById('inc5').addEventListener('dblclick', ()=> { setPct(100, {source:'max_shortcut'}); pushLog('Forced 100 via dblclick'); });
+
+/* ---------- file drag & drop snapshot (optional) ---------- */
+document.body.addEventListener('drop', (e)=>{
+  e.preventDefault(); e.stopPropagation();
+  pushLog('Files dropped (ignored) — feature reserved for future.');
+}, false);
+document.body.addEventListener('dragover', (e)=>{ e.preventDefault(); }, false);
+
+/* ---------- boot prompt (if no user) ---------- */
+if (!state.user){
+  // show login modal (already visible)
+} else {
+  loginModal.style.display = 'none';
+}
+
+/* ---------- load saved logs visually (already rendered) ---------- */
+
+/* ---------- finalize UI updates every second ---------- */
+setInterval(()=>{ updateUI(); }, 1000);
 
 </script>
-
 </body>
 </html>
