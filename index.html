@@ -1,61 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Internet Connector</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Internet Connector PRO</title>
 
 <style>
     body {
         margin: 0;
+        background: #050505;
+        color: white;
+        font-family: 'Arial', sans-serif;
         height: 100vh;
-        background: #0d0d0d;
-        font-family: Arial, sans-serif;
         display: flex;
         justify-content: center;
         align-items: center;
-        color: white;
-        overflow: hidden;
     }
 
-    .container {
-        width: 90%;
-        max-width: 420px;
-        text-align: center;
-        padding: 25px;
-        border-radius: 20px;
+    .wrap {
+        width: 95%;
+        max-width: 480px;
+        padding: 20px;
         background: rgba(255,255,255,0.05);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(255,255,255,0.1);
-        box-shadow: 0 0 20px rgba(0,255,140,0.3);
-        animation: fadeIn 1s ease forwards;
+        border-radius: 20px;
+        border: 1px solid rgba(0,255,120,0.3);
+        box-shadow: 0 0 25px rgba(0,255,120,0.3);
+        backdrop-filter: blur(14px);
+        text-align: center;
     }
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-
-    #connectBtn {
-        background: #00ff88;
+    .btn {
+        padding: 14px 22px;
+        background: #00ff99;
         color: black;
-        border: none;
-        padding: 15px 25px;
         border-radius: 12px;
+        border: none;
         font-size: 18px;
         font-weight: bold;
         cursor: pointer;
-        margin-bottom: 20px;
         transition: 0.2s;
+        margin-bottom: 15px;
     }
 
-    #connectBtn:hover {
-        transform: scale(1.05);
+    .btn:hover {
+        transform: scale(1.06);
         background: #00ffaa;
     }
 
     .loader {
-        margin: 20px auto;
+        margin: 15px auto;
         border: 5px solid rgba(255,255,255,0.1);
         border-top: 5px solid #00ff88;
         border-radius: 50%;
@@ -69,58 +62,71 @@
         to { transform: rotate(360deg); }
     }
 
-    #status {
-        font-size: 20px;
-        margin-top: 15px;
-        min-height: 30px;
+    #terminal {
+        margin-top: 20px;
+        height: 150px;
+        text-align: left;
+        font-family: monospace;
+        font-size: 14px;
+        overflow-y: auto;
+        padding: 10px;
+        background: rgba(0,0,0,0.55);
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.1);
     }
 
-    .logBox {
-        height: 150px;
-        background: rgba(0,0,0,0.4);
-        overflow-y: auto;
+    .graphBox {
         margin-top: 20px;
+        height: 120px;
+        background: rgba(255,255,255,0.07);
+        border-radius: 10px;
+        border: 1px solid rgba(0,255,120,0.3);
+        padding: 10px;
+    }
+
+    canvas {
+        width: 100%;
+        height: 100%;
+    }
+
+    .module {
+        background: rgba(0, 0, 0, 0.4);
         padding: 10px;
         border-radius: 10px;
-        font-size: 14px;
         border: 1px solid rgba(255,255,255,0.1);
+        margin-top: 20px;
         text-align: left;
     }
 
-    .signalBar {
-        margin-top: 20px;
-        height: 12px;
-        width: 100%;
-        background: rgba(255,255,255,0.1);
-        border-radius: 10px;
-        overflow: hidden;
-    }
-
-    .signalFill {
-        height: 100%;
-        width: 0%;
-        background: #00ff88;
-        transition: width 1s ease;
+    .success {
+        color: #00ff95;
+        font-size: 22px;
+        margin-top: 10px;
     }
 </style>
-
 </head>
+
 <body>
-
-<div class="container">
-    <h2>Internet Connector</h2>
-
-    <button id="connectBtn">Getting Internet…</button>
-
+<div class="wrap">
+    <h2>Internet Connector PRO</h2>
+    <button class="btn" id="connectBtn">Start Connection</button>
     <div class="loader" id="loader"></div>
-
     <div id="status"></div>
 
-    <div class="signalBar">
-        <div class="signalFill" id="signalFill"></div>
+    <div id="terminal"></div>
+
+    <div class="module">
+        <h3>Fake Virus Scan</h3>
+        <div id="virusScan">Waiting…</div>
     </div>
 
-    <div class="logBox" id="logBox">
+    <div class="module">
+        <h3>Speed Test</h3>
+        <div id="speedTest">Waiting…</div>
+    </div>
+
+    <div class="graphBox">
+        <canvas id="netGraph"></canvas>
     </div>
 </div>
 
@@ -128,55 +134,89 @@
     const btn = document.getElementById("connectBtn");
     const loader = document.getElementById("loader");
     const status = document.getElementById("status");
-    const logs = document.getElementById("logBox");
-    const signal = document.getElementById("signalFill");
+    const terminal = document.getElementById("terminal");
+    const virus = document.getElementById("virusScan");
+    const speed = document.getElementById("speedTest");
 
-    function addLog(text) {
-        logs.innerHTML += "• " + text + "<br>";
-        logs.scrollTop = logs.scrollHeight;
+    function log(text) {
+        terminal.innerHTML += "> " + text + "<br>";
+        terminal.scrollTop = terminal.scrollHeight;
     }
 
     function fakeIP() {
         return (
-            Math.floor(Math.random()*255) + "." +
-            Math.floor(Math.random()*255) + "." +
-            Math.floor(Math.random()*255) + "." +
-            Math.floor(Math.random()*255)
+            Math.floor(Math.random() * 255) + "." +
+            Math.floor(Math.random() * 255) + "." +
+            Math.floor(Math.random() * 255) + "." +
+            Math.floor(Math.random() * 255)
         );
     }
 
     btn.addEventListener("click", () => {
-        loader.style.display = "block";
-        signal.style.width = "0%";
-        status.innerHTML = "Connecting…";
-        logs.innerHTML = "";
-
-        addLog("Starting connection sequence…");
         btn.disabled = true;
+        loader.style.display = "block";
+        terminal.innerHTML = "";
 
-        setTimeout(() => addLog("Checking network adapters…"), 800);
-        setTimeout(() => addLog("Locating nearest router…"), 1600);
-        setTimeout(() => addLog("Sending request to server…"), 2400);
-        setTimeout(() => addLog("Authentication successful"), 3200);
-        setTimeout(() => addLog("Assigning IP: " + fakeIP()), 4000);
+        log("Initializing connection handler…");
+        setTimeout(() => log("Checking system modules…"), 800);
+        setTimeout(() => log("Booting network drivers…"), 1600);
+        setTimeout(() => log("Pinging gateway…"), 2400);
+        setTimeout(() => log("Connecting to router…"), 3200);
+        setTimeout(() => log("Assigning IP: " + fakeIP()), 4000);
 
         setTimeout(() => {
-            signal.style.width = "80%";
-            addLog("Signal strength increased");
+            log("Finalizing connection…");
+            status.innerHTML = "Connecting…";
         }, 4800);
 
+        // virus scan
+        setTimeout(() => virus.innerHTML = "Scanning…", 2000);
+        setTimeout(() => virus.innerHTML = "No threats detected ✔️", 5000);
+
+        // speed test
+        setTimeout(() => speed.innerHTML = "Testing speed…", 3000);
         setTimeout(() => {
-            signal.style.width = "100%";
-            addLog("Connection stable");
-        }, 5600);
+            const down = (Math.random() * 900 + 100).toFixed(2);
+            const up = (Math.random() * 400 + 50).toFixed(2);
+            speed.innerHTML = `Download: ${down} Mbps<br>Upload: ${up} Mbps`;
+        }, 7000);
 
         setTimeout(() => {
             loader.style.display = "none";
-            status.innerHTML = "✅ Connected Successfully";
-            addLog("Internet acquired!");
+            status.innerHTML = "<div class='success'>✔️ Connected Successfully</div>";
+            log("Internet connection stabilized.");
             btn.disabled = false;
         }, 6500);
     });
+
+    // Live network graph generator
+    const canvas = document.getElementById("netGraph");
+    const ctx = canvas.getContext("2d");
+    let data = [];
+
+    function drawGraph() {
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+
+        ctx.strokeStyle = "#00ff99";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        if (data.length > canvas.width) data.shift();
+
+        ctx.moveTo(0, canvas.height - data[0]);
+
+        for (let i = 1; i < data.length; i++) {
+            ctx.lineTo(i, canvas.height - data[i]);
+        }
+
+        ctx.stroke();
+    }
+
+    setInterval(() => {
+        data.push(Math.random() * canvas.clientHeight);
+        drawGraph();
+    }, 100);
 </script>
 
 </body>
