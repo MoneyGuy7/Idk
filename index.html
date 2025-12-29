@@ -67,7 +67,7 @@ async function getLocalTime() {
         const geoResponse = await fetch(`https://wft-geo-db.p.rapidapi.com/v1/geo/cities?namePrefix=${encodeURIComponent(city)}`, {
             method: 'GET',
             headers: {
-                'X-RapidAPI-Key': 'YOUR_RAPIDAPI_KEY', // Replace with your free RapidAPI key
+                'X-RapidAPI-Key': '3d3eb384afmsh0b4563d2e24bb2bp11f5a2jsna5aea570cbc8', // Your RapidAPI key
                 'X-RapidAPI-Host': 'wft-geo-db.p.rapidapi.com'
             }
         });
