@@ -1,101 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Time Finder</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #1e1e1e;
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-        }
-        h1 {
-            margin-bottom: 20px;
-        }
-        input {
-            padding: 10px;
-            font-size: 16px;
-            border-radius: 5px;
-            border: none;
-            margin-right: 10px;
-        }
-        button {
-            padding: 10px 15px;
-            font-size: 16px;
-            border-radius: 5px;
-            border: none;
-            background-color: #4caf50;
-            color: white;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        #result {
-            margin-top: 20px;
-            font-size: 24px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>City Time Finder</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #1e1e1e;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+    }
+    h1 {
+        margin-bottom: 20px;
+    }
+    input {
+        padding: 10px;
+        font-size: 16px;
+        border-radius: 5px;
+        border: none;
+        margin-right: 10px;
+    }
+    button {
+        padding: 10px 15px;
+        font-size: 16px;
+        border-radius: 5px;
+        border: none;
+        background-color: #4caf50;
+        color: white;
+        cursor: pointer;
+    }
+    button:hover {
+        background-color: #45a049;
+    }
+    #result {
+        margin-top: 20px;
+        font-size: 24px;
+    }
+</style>
 </head>
 <body>
-    <h1>Local Time Finder</h1>
-    <div>
-        <input type="text" id="city" placeholder="Enter a city (e.g., New York)">
-        <button onclick="getLocalTime()">Check Time</button>
-    </div>
-    <div id="result"></div>
+<h1>City Time Finder</h1>
+<div>
+    <input type="text" id="city" placeholder="Enter a city (e.g., Northbrook, Illinois)">
+    <button onclick="getLocalTime()">Check Time</button>
+</div>
+<div id="result"></div>
 
-    <script>
-        async function getLocalTime() {
-            const city = document.getElementById('city').value.trim();
-            const result = document.getElementById('result');
+<script>
+async function getLocalTime() {
+    const city = document.getElementById('city').value.trim();
+    const result = document.getElementById('result');
 
-            if (!city) {
-                result.textContent = 'Please enter a city name.';
-                return;
+    if (!city) {
+        result.textContent = 'Please enter a city name.';
+        return;
+    }
+
+    try {
+        // Step 1: Use GeoDB Cities API to find city data
+        const geoResponse = await fetch(`https://wft-geo-db.p.rapidapi.com/v1/geo/cities?namePrefix=${encodeURIComponent(city)}`, {
+            method: 'GET',
+            headers: {
+                'X-RapidAPI-Key': 'YOUR_RAPIDAPI_KEY', // Replace with your free RapidAPI key
+                'X-RapidAPI-Host': 'wft-geo-db.p.rapidapi.com'
             }
+        });
+        const geoData = await geoResponse.json();
 
-            try {
-                // Replace spaces with underscores for API compatibility
-                const formattedCity = city.replace(/ /g, '_');
-
-                // Fetch timezone information
-                const response = await fetch(`https://worldtimeapi.org/api/timezone`);
-                const timezones = await response.json();
-
-                // Find a timezone that contains the city name (case-insensitive)
-                const timezone = timezones.find(tz => tz.toLowerCase().includes(formattedCity.toLowerCase()));
-
-                if (!timezone) {
-                    result.textContent = 'City not found. Try another.';
-                    return;
-                }
-
-                // Fetch time for the timezone
-                const timeResponse = await fetch(`https://worldtimeapi.org/api/timezone/${timezone}`);
-                const timeData = await timeResponse.json();
-                const datetime = new Date(timeData.datetime);
-
-                // Convert to 12-hour format
-                let hours = datetime.getHours();
-                const minutes = datetime.getMinutes().toString().padStart(2, '0');
-                const ampm = hours >= 12 ? 'PM' : 'AM';
-                hours = hours % 12;
-                hours = hours ? hours : 12; // the hour '0' should be '12'
-
-                result.textContent = `Local time in ${city}: ${hours}:${minutes} ${ampm}`;
-            } catch (error) {
-                result.textContent = 'Error fetching time. Try again later.';
-                console.error(error);
-            }
+        if (!geoData.data || geoData.data.length === 0) {
+            result.textContent = 'City not found. Try another.';
+            return;
         }
-    </script>
+
+        const cityInfo = geoData.data[0];
+        const timezone = cityInfo.timezone;
+
+        // Step 2: Use WorldTimeAPI to get current time for that timezone
+        const timeResponse = await fetch(`https://worldtimeapi.org/api/timezone/${timezone}`);
+        const timeData = await timeResponse.json();
+        const datetime = new Date(timeData.datetime);
+
+        // Step 3: Convert to 12-hour format
+        let hours = datetime.getHours();
+        const minutes = datetime.getMinutes().toString().padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+
+        result.textContent = `Local time in ${cityInfo.city}, ${cityInfo.country}: ${hours}:${minutes} ${ampm}`;
+    } catch (error) {
+        console.error(error);
+        result.textContent = 'Error fetching time. Try again later.';
+    }
+}
+</script>
 </body>
 </html>
