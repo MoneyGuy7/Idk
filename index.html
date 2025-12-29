@@ -54,17 +54,20 @@
 
 <script>
 async function getLocalTime() {
-    const city = document.getElementById('city').value.trim();
+    const input = document.getElementById('city').value.trim();
     const result = document.getElementById('result');
 
-    if (!city) {
+    if (!input) {
         result.textContent = 'Please enter a city name.';
         return;
     }
 
     try {
-        // Step 1: Use GeoDB Cities API to find city data
-        const geoResponse = await fetch(`https://wft-geo-db.p.rapidapi.com/v1/geo/cities?namePrefix=${encodeURIComponent(city)}`, {
+        // Take only the city part before comma
+        const cityName = input.split(',')[0].trim();
+
+        // Call GeoDB Cities API
+        const geoResponse = await fetch(`https://wft-geo-db.p.rapidapi.com/v1/geo/cities?namePrefix=${encodeURIComponent(cityName)}`, {
             method: 'GET',
             headers: {
                 'X-RapidAPI-Key': '3d3eb384afmsh0b4563d2e24bb2bp11f5a2jsna5aea570cbc8', // Your RapidAPI key
@@ -78,15 +81,22 @@ async function getLocalTime() {
             return;
         }
 
-        const cityInfo = geoData.data[0];
+        // Try to match country/state if user typed it
+        let cityInfo = geoData.data[0];
+        if (input.includes(',')) {
+            const countryPart = input.split(',')[1].trim().toUpperCase();
+            const matched = geoData.data.find(c => c.countryCode.toUpperCase() === countryPart || c.region.toUpperCase().includes(countryPart));
+            if (matched) cityInfo = matched;
+        }
+
         const timezone = cityInfo.timezone;
 
-        // Step 2: Use WorldTimeAPI to get current time for that timezone
+        // Get time from WorldTimeAPI
         const timeResponse = await fetch(`https://worldtimeapi.org/api/timezone/${timezone}`);
         const timeData = await timeResponse.json();
         const datetime = new Date(timeData.datetime);
 
-        // Step 3: Convert to 12-hour format
+        // Convert to 12-hour format
         let hours = datetime.getHours();
         const minutes = datetime.getMinutes().toString().padStart(2, '0');
         const ampm = hours >= 12 ? 'PM' : 'AM';
