@@ -1,166 +1,248 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>City Time Finder</title>
+  <meta charset="UTF-8" />
+  <title>City Time Finder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<style>
-* {
-    box-sizing: border-box;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-}
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
-body {
-    margin: 0;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-    color: white;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-top: 60px;
-}
+  <style>
+    :root {
+      --bg: #0b0b0b;
+      --card: #121212;
+      --red: #e10600;
+      --red-glow: rgba(225, 6, 0, 0.6);
+      --text: #f2f2f2;
+      --muted: #9a9a9a;
+    }
 
-h1 {
-    margin-bottom: 25px;
-    color: #00ffcc;
-}
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
 
-.search-box {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-}
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #1a0000, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
 
-input {
-    padding: 12px 15px;
-    font-size: 16px;
-    border-radius: 10px;
-    border: none;
-    width: 260px;
-}
+    /* 🔄 LOADING SCREEN */
+    #loader {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
 
-button {
-    padding: 12px 20px;
-    border-radius: 10px;
-    border: none;
-    background: #00ffcc;
-    color: #000;
-    font-weight: bold;
-    cursor: pointer;
-}
+    .loader-box {
+      text-align: center;
+      animation: fadePulse 1.6s infinite;
+    }
 
-button:hover {
-    background: #00ddb3;
-}
+    .loader-box h1 {
+      color: var(--red);
+      font-size: 2.2rem;
+      letter-spacing: 2px;
+    }
 
-select {
-    margin-top: 10px;
-    padding: 12px;
-    border-radius: 10px;
-    border: none;
-    width: 340px;
-    font-size: 16px;
-}
+    @keyframes fadePulse {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
 
-#timeBox {
-    margin-top: 25px;
-    background: rgba(0,0,0,0.35);
-    padding: 20px 30px;
-    border-radius: 15px;
-    font-size: 1.5rem;
-    min-width: 320px;
-    text-align: center;
-}
-</style>
+    /* 🌐 MAIN CARD */
+    .card {
+      background: linear-gradient(180deg, #161616, var(--card));
+      padding: 28px;
+      border-radius: 18px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 0 35px rgba(0,0,0,0.7),
+                  0 0 25px var(--red-glow);
+      opacity: 0;
+      transform: translateY(20px);
+      animation: cardIn 0.6s ease forwards;
+      animation-delay: 0.4s;
+    }
+
+    @keyframes cardIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      text-align: center;
+      color: var(--red);
+      font-weight: 700;
+    }
+
+    p {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 20px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 14px;
+      margin-bottom: 14px;
+      background: #0f0f0f;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+      transition: 0.25s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--red);
+      box-shadow: 0 0 12px var(--red-glow);
+    }
+
+    select option {
+      background: #0f0f0f;
+      color: #fff;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--red), #8b0000);
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 0 18px var(--red-glow);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 28px var(--red-glow);
+    }
+
+    #timeDisplay {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .small {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+  </style>
 </head>
-
 <body>
 
-<h1>🌍 City Time Finder</h1>
+  <!-- LOADING SCREEN -->
+  <div id="loader">
+    <div class="loader-box">
+      <h1>LOADING</h1>
+    </div>
+  </div>
 
-<div class="search-box">
-    <input id="cityInput" placeholder="Enter a city (e.g. Chicago)">
-    <button onclick="searchCity()">Search</button>
-</div>
+  <!-- MAIN UI -->
+  <div class="card">
+    <h2>City Time Finder</h2>
+    <p>Search any city or town worldwide</p>
 
-<select id="results" hidden></select>
+    <input id="cityInput" placeholder="Type a city (e.g. Northbrook)" />
+    <select id="citySelect" style="display:none;"></select>
+    <button onclick="findCity()">Find Time</button>
 
-<div id="timeBox"></div>
+    <div id="timeDisplay"></div>
+  </div>
 
-<script>
-let places = [];
-let clockInterval = null;
+  <script>
+    const cityInput = document.getElementById("cityInput");
+    const citySelect = document.getElementById("citySelect");
+    const timeDisplay = document.getElementById("timeDisplay");
+    let timer;
 
-async function searchCity() {
-    const query = document.getElementById("cityInput").value.trim();
-    const results = document.getElementById("results");
-    const timeBox = document.getElementById("timeBox");
+    // Hide loader after page load
+    window.onload = () => {
+      setTimeout(() => {
+        document.getElementById("loader").style.display = "none";
+      }, 900);
+    };
 
-    clearInterval(clockInterval);
-    timeBox.textContent = "";
-    results.hidden = true;
+    async function findCity() {
+      clearInterval(timer);
+      timeDisplay.textContent = "";
+      citySelect.style.display = "none";
+      citySelect.innerHTML = "";
 
-    if (!query) {
-        timeBox.textContent = "Please enter a city name.";
+      const query = cityInput.value.trim();
+      if (!query) return;
+
+      const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json`;
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (!data.results) {
+        timeDisplay.textContent = "No cities found.";
         return;
+      }
+
+      data.results.forEach((city, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = `${city.name}, ${city.admin1 || ""} ${city.country}`;
+        citySelect.appendChild(option);
+      });
+
+      citySelect.style.display = "block";
+      citySelect.onchange = () => showTime(data.results[citySelect.value]);
+      showTime(data.results[0]);
     }
 
-    try {
-        const res = await fetch(
-            `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10`
-        );
-        const data = await res.json();
+    function showTime(city) {
+      clearInterval(timer);
 
-        if (!data.results || data.results.length === 0) {
-            timeBox.textContent = "No cities found.";
-            return;
-        }
-
-        places = data.results;
-
-        results.innerHTML = "";
-        places.forEach((p, i) => {
-            const option = document.createElement("option");
-            option.value = i;
-            option.textContent = `${p.name}, ${p.admin1 || ""} ${p.country}`;
-            results.appendChild(option);
-        });
-
-        results.hidden = false;
-        results.onchange = showTime;
-        showTime();
-
-    } catch {
-        timeBox.textContent = "Error searching cities.";
-    }
-}
-
-function showTime() {
-    const results = document.getElementById("results");
-    const timeBox = document.getElementById("timeBox");
-    const place = places[results.value];
-
-    clearInterval(clockInterval);
-
-    function update() {
+      function updateTime() {
+        const now = new Date();
         const formatter = new Intl.DateTimeFormat("en-US", {
-            timeZone: place.timezone,
-            hour: "numeric",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: true
+          timeZone: city.timezone,
+          hour: "numeric",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true
         });
 
-        timeBox.textContent =
-            `Local time in ${place.name}, ${place.country}:\n${formatter.format(new Date())}`;
+        timeDisplay.innerHTML = `
+          Local time in <strong>${city.name}, ${city.country}</strong><br>
+          ${formatter.format(now)}
+          <div class="small">${city.timezone}</div>
+        `;
+      }
+
+      updateTime();
+      timer = setInterval(updateTime, 1000);
     }
-
-    update();
-    clockInterval = setInterval(update, 1000);
-}
-</script>
-
+  </script>
 </body>
 </html>
